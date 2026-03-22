@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Forward — Book Your Ride</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0d0d0d;
+    --white: #f9f7f4;
+    --accent: #f0a500;
+    --accent-dim: rgba(240,165,0,0.12);
+    --surface: #ffffff;
+    --surface-2: #f3f1ed;
+    --border: #e4e1db;
+    --text-primary: #0d0d0d;
+    --text-secondary: #6b6760;
+    --text-muted: #9e9b95;
+    --error: #d03b2f;
+    --radius: 14px;
+    --radius-sm: 10px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.07);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--surface-2); color: var(--text-primary); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+
+  /* HEADER */
+  .header { background: var(--black); padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+  .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 20px; color: var(--white); }
+  .logo-dot { color: var(--accent); }
+  .header-badge { font-size: 10px; font-weight: 500; letter-spacing: 1.8px; text-transform: uppercase; color: var(--text-muted); }
+
+  /* PROGRESS */
+  .progress-shell { background: var(--black); padding: 0 20px 18px; }
+  .step-bars { display: flex; gap: 5px; margin-bottom: 10px; }
+  .step-bar { height: 2px; flex: 1; background: rgba(255,255,255,0.12); border-radius: 2px; transition: background 0.4s; position: relative; overflow: hidden; }
+  .step-bar.done { background: rgba(255,255,255,0.45); }
+  .step-bar.active { background: rgba(255,255,255,0.12); }
+  .step-bar.active::after { content: ''; position: absolute; inset: 0; background: var(--accent); border-radius: 2px; animation: fillBar 0.5s ease forwards; }
+  @keyframes fillBar { from { width: 0; } to { width: 100%; } }
+  .step-label { font-size: 11px; color: rgba(255,255,255,0.35); letter-spacing: 1.2px; text-transform: uppercase; }
+  .step-label span { color: var(--accent); font-weight: 600; }
+
+  /* MAIN */
+  .main { max-width: 480px; margin: 0 auto; padding: 24px 16px 64px; }
+
+  /* PAGES */
+  .page { display: none; }
+  .page.active { display: block; animation: slideUp 0.32s cubic-bezier(0.16,1,0.3,1); }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+
+  .page-head { margin-bottom: 24px; }
+  .page-eyebrow { font-size: 11px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+  .page-title { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; line-height: 1.15; margin-bottom: 6px; }
+  .page-sub { font-size: 14px; color: var(--text-secondary); line-height: 1.55; }
+
+  /* CARD */
+  .card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 20px; margin-bottom: 12px; box-shadow: var(--shadow); }
+
+  /* FIELDS */
+  .field { margin-bottom: 18px; }
+  .field:last-child { margin-bottom: 0; }
+  .field-label { display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 500; letter-spacing: 0.9px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 8px; }
+  .req { color: var(--accent); font-size: 14px; line-height: 1; }
+  .field-hint { font-size: 12px; color: var(--text-muted); margin-top: 5px; font-style: italic; }
+  .field-err { font-size: 12px; color: var(--error); margin-top: 5px; display: none; }
+  .field-err.show { display: block; }
+
+  /* INPUTS */
+  .input, .select-el, .textarea-el {
+    width: 100%; background: var(--surface-2); border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    padding: 13px 15px; font-family: 'DM Sans', sans-serif; font-size: 15px; color: var(--text-primary);
+    outline: none; transition: border-color 0.18s, background 0.18s, box-shadow 0.18s; appearance: none; -webkit-appearance: none;
+  }
+  .input:focus, .select-el:focus, .textarea-el:focus { border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 3px var(--accent-dim); }
+  .input.invalid, .select-el.invalid { border-color: var(--error); }
+  .textarea-el { resize: none; min-height: 88px; line-height: 1.5; }
+
+  /* SELECT */
+  .select-wrap { position: relative; }
+  .select-wrap::after { content: ''; position: absolute; right: 14px; top: 50%; transform: translateY(-50%); width: 10px; height: 6px; background: var(--text-muted); clip-path: polygon(0 0, 100% 0, 50% 100%); pointer-events: none; }
+  .select-el { padding-right: 36px; cursor: pointer; }
+
+  /* STEPPER */
+  .stepper { display: flex; background: var(--surface-2); border: 1.5px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+  .step-btn { width: 50px; height: 50px; background: none; border: none; font-size: 22px; font-weight: 300; color: var(--text-primary); cursor: pointer; transition: background 0.15s; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .step-btn:hover:not(:disabled) { background: var(--border); }
+  .step-btn:disabled { color: var(--text-muted); cursor: default; }
+  .step-input { flex: 1; border: none; background: none; text-align: center; font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; color: var(--text-primary); outline: none; -moz-appearance: textfield; }
+  .step-input::-webkit-inner-spin-button, .step-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  /* TOGGLE */
+  .toggle-row { display: flex; gap: 8px; }
+  .toggle-opt { flex: 1; padding: 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.18s; color: var(--text-secondary); text-align: center; }
+  .toggle-opt.on { border-color: var(--accent); background: var(--accent-dim); color: var(--text-primary); }
+
+  /* CONDITIONAL */
+  .conditional { display: none; border-left: 2px solid var(--accent); padding-left: 16px; margin-top: 14px; }
+  .conditional.show { display: block; animation: slideUp 0.22s ease; }
+
+  /* REVEAL */
+  .reveal { display: none; }
+  .reveal.show { display: block; animation: slideUp 0.25s ease; }
+
+  /* TRIP CHIP */
+  .trip-chip { background: var(--black); border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 18px; }
+  .trip-chip-route { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--white); margin-bottom: 8px; }
+  .trip-chip-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+  .meta-pill { font-size: 12px; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+  .meta-pill.date { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.65); }
+  .meta-pill.price { background: var(--accent); color: var(--black); }
+  .meta-pill.seats { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); }
+
+  /* CHECKBOX */
+  .check-wrap { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); cursor: pointer; transition: border-color 0.18s, background 0.18s; }
+  .check-wrap:hover { border-color: var(--accent); }
+  .check-wrap.on { border-color: var(--accent); background: var(--accent-dim); }
+  .check-wrap input[type=checkbox] { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; accent-color: var(--accent); cursor: pointer; }
+  .check-text { font-size: 14px; line-height: 1.5; color: var(--text-primary); cursor: pointer; }
+
+  /* SUMMARY */
+  .summary { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); margin-bottom: 12px; }
+  .summary-head { background: var(--black); padding: 12px 16px; font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.45); }
+  .summary-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 11px 16px; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .summary-row:last-child { border-bottom: none; }
+  .s-key { font-size: 13px; color: var(--text-muted); flex-shrink: 0; margin-right: 12px; }
+  .s-val { font-size: 13px; font-weight: 500; text-align: right; }
+  .total-row { background: var(--surface-2); padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; border-top: 2px solid var(--border); }
+  .total-label { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); }
+  .total-amount { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; }
+
+  /* BUTTONS */
+  .btn-row { display: flex; gap: 10px; margin-top: 24px; }
+  .btn { border: none; border-radius: var(--radius-sm); font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; cursor: pointer; transition: all 0.18s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn-primary { flex: 1; padding: 16px; background: var(--accent); color: var(--black); letter-spacing: 0.3px; }
+  .btn-primary:hover { background: #d99400; }
+  .btn-primary:disabled { background: var(--border); color: var(--text-muted); cursor: default; }
+  .btn-back { padding: 16px 18px; background: var(--surface); border: 1.5px solid var(--border); color: var(--text-secondary); }
+  .btn-back:hover { border-color: var(--text-primary); color: var(--text-primary); }
+  .btn-spinner { width: 17px; height: 17px; border: 2px solid rgba(0,0,0,0.15); border-top-color: var(--black); border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+
+  /* STATES */
+  #state-loading { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 70px 20px; }
+  #state-error, #state-success { display: none; text-align: center; padding: 60px 20px; }
+  .big-spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.75s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .state-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+  .state-body { font-size: 14px; color: var(--text-secondary); line-height: 1.6; max-width: 300px; margin: 0 auto 20px; }
+  .success-mark { width: 68px; height: 68px; background: var(--black); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 28px; }
+  .booking-ref-box { background: var(--black); border-radius: var(--radius-sm); padding: 16px 24px; display: inline-block; margin-bottom: 16px; }
+  .booking-ref-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.35); margin-bottom: 4px; }
+  .booking-ref-val { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: var(--accent); letter-spacing: 3px; }
+  .retry-btn { background: var(--black); color: var(--white); border: none; border-radius: var(--radius-sm); padding: 12px 24px; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; }
+
+  .divider { height: 1px; background: var(--border); margin: 18px 0; }
+  .section-label { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 14px; }
+
+  @media (max-width: 360px) { .page-title { font-size: 22px; } .btn { font-size: 14px; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">Forward<span class="logo-dot">.</span></div>
+  <div class="header-badge">Book a Ride</div>
+</div>
+
+<div class="progress-shell">
+  <div class="step-bars">
+    <div class="step-bar active" id="bar-1"></div>
+    <div class="step-bar" id="bar-2"></div>
+    <div class="step-bar" id="bar-3"></div>
+  </div>
+  <div class="step-label" id="step-label"><span>Step 1</span> of 3 — Select Trip</div>
+</div>
+
+<div class="main">
+
+  <div id="state-loading">
+    <div class="big-spinner"></div>
+    <div style="font-size:14px;color:var(--text-secondary)">Fetching available trips…</div>
+  </div>
+
+  <div id="state-error">
+    <div style="font-size:38px;margin-bottom:14px">⚠️</div>
+    <div class="state-title">Couldn't load trips</div>
+    <div class="state-body" id="error-body">Check your connection and try again. If the issue persists, message us on WhatsApp.</div>
+    <button class="retry-btn" onclick="init()">Try Again</button>
+  </div>
+
+  <div id="state-success">
+    <div class="success-mark">✓</div>
+    <div class="state-title">You're in the queue!</div>
+    <div class="state-body">Booking received. You'll get a payment link via email and WhatsApp once your seat is confirmed.</div>
+    <div class="booking-ref-box">
+      <div class="booking-ref-label">Booking Reference</div>
+      <div class="booking-ref-val" id="ref-display">FWD-000000</div>
+    </div>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:8px">Save this code — you'll need it to board.</p>
+  </div>
+
+  <!-- PAGE 1: TRIP SELECTION -->
+  <div class="page" id="page-1">
+    <div class="page-head">
+      <div class="page-eyebrow">Step 1</div>
+      <div class="page-title">Select your trip</div>
+      <div class="page-sub">Choose from available departures.</div>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <div class="field-label">Available Trips <span class="req">*</span></div>
+        <div class="select-wrap">
+          <select class="select-el" id="trip_selection" onchange="onTripSelect()">
+            <option value="">— Choose a departure —</option>
+          </select>
+        </div>
+        <div class="field-err" id="err-trip">⚠ Please select a trip to continue.</div>
+      </div>
+
+      <div class="reveal" id="reveal-trip">
+        <div class="trip-chip">
+          <div class="trip-chip-route" id="chip-route">—</div>
+          <div class="trip-chip-meta">
+            <span class="meta-pill date" id="chip-date">—</span>
+            <span class="meta-pill price" id="chip-price">—</span>
+            <span class="meta-pill seats" id="chip-seats">—</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="field-label">Pickup Point <span class="req">*</span></div>
+          <div class="select-wrap">
+            <select class="select-el" id="pickup_point">
+              <option value="">— Select pickup location —</option>
+            </select>
+          </div>
+          <div class="field-err" id="err-pickup">⚠ Please select a pickup point.</div>
+        </div>
+
+        <div class="field" style="margin-bottom:0">
+          <div class="field-label">Number of Seats <span class="req">*</span></div>
+          <div class="stepper">
+            <button class="step-btn" id="btn-minus" onclick="adjustSeats(-1)" type="button">−</button>
+            <input class="step-input" id="seats_requested" type="number" value="1" min="1" max="4" readonly>
+            <button class="step-btn" id="btn-plus" onclick="adjustSeats(1)" type="button">+</button>
+          </div>
+          <div class="field-hint" id="seats-hint">Max 4 seats per booking</div>
+          <div class="field-err" id="err-seats">⚠ Please select at least 1 seat.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goTo(2)" type="button">Continue →</button>
+    </div>
+  </div>
+
+  <!-- PAGE 2: PASSENGER INFO -->
+  <div class="page" id="page-2">
+    <div class="page-head">
+      <div class="page-eyebrow">Step 2</div>
+      <div class="page-title">Your details</div>
+      <div class="page-sub">Payment link will be sent to your email.</div>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Contact Info</div>
+      <div class="field">
+        <div class="field-label">Full Name <span class="req">*</span></div>
+        <input class="input" type="text" id="full_name" placeholder="e.g. Chisom Okafor" autocomplete="name">
+        <div class="field-err" id="err-name">⚠ Please enter your full name.</div>
+      </div>
+      <div class="field">
+        <div class="field-label">Phone Number <span class="req">*</span></div>
+        <input class="input" type="tel" id="phone_number" placeholder="e.g. 08012345678" autocomplete="tel">
+        <div class="field-err" id="err-phone">⚠ Please enter a valid Nigerian phone number.</div>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <div class="field-label">Email Address <span class="req">*</span></div>
+        <input class="input" type="email" id="email" placeholder="e.g. chisom@email.com" autocomplete="email">
+        <div class="field-hint">Your payment link arrives here</div>
+        <div class="field-err" id="err-email">⚠ Please enter a valid email address.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Booking For Someone Else?</div>
+      <div class="field" style="margin-bottom:0">
+        <div class="toggle-row">
+          <button class="toggle-opt on" id="tog-no" onclick="toggleOther(false)" type="button">No, just me</button>
+          <button class="toggle-opt" id="tog-yes" onclick="toggleOther(true)" type="button">Yes, for someone</button>
+        </div>
+        <div class="conditional" id="other-fields">
+          <div class="divider"></div>
+          <div class="section-label">Passenger Details</div>
+          <div class="field">
+            <div class="field-label">Passenger Name <span class="req">*</span></div>
+            <input class="input" type="text" id="passenger_name" placeholder="Full name">
+            <div class="field-err" id="err-pax-name">⚠ Please enter the passenger's name.</div>
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <div class="field-label">Passenger Phone <span class="req">*</span></div>
+            <input class="input" type="tel" id="passenger_phone" placeholder="e.g. 08012345678">
+            <div class="field-err" id="err-pax-phone">⚠ Please enter the passenger's phone number.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-back" onclick="goTo(1)" type="button">←</button>
+      <button class="btn btn-primary" onclick="goTo(3)" type="button">Continue →</button>
+    </div>
+  </div>
+
+  <!-- PAGE 3: REVIEW & CONFIRM -->
+  <div class="page" id="page-3">
+    <div class="page-head">
+      <div class="page-eyebrow">Step 3</div>
+      <div class="page-title">Review & confirm</div>
+      <div class="page-sub">Check your details before submitting.</div>
+    </div>
+
+    <div class="summary">
+      <div class="summary-head">Booking Summary</div>
+      <div class="summary-row"><span class="s-key">Trip</span><span class="s-val" id="sum-trip">—</span></div>
+      <div class="summary-row"><span class="s-key">Date</span><span class="s-val" id="sum-date">—</span></div>
+      <div class="summary-row"><span class="s-key">Pickup</span><span class="s-val" id="sum-pickup">—</span></div>
+      <div class="summary-row"><span class="s-key">Seats</span><span class="s-val" id="sum-seats">—</span></div>
+      <div class="summary-row"><span class="s-key">Name</span><span class="s-val" id="sum-name">—</span></div>
+      <div class="summary-row"><span class="s-key">Phone</span><span class="s-val" id="sum-phone">—</span></div>
+      <div class="summary-row"><span class="s-key">Email</span><span class="s-val" id="sum-email">—</span></div>
+      <div class="total-row">
+        <span class="total-label">Total</span>
+        <span class="total-amount" id="sum-total">—</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="field" style="margin-bottom:0">
+        <div class="field-label">Additional Notes</div>
+        <textarea class="textarea-el" id="notes" placeholder="Anything we should know? (optional)"></textarea>
+      </div>
+    </div>
+
+    <div class="check-wrap" id="agree-wrap" onclick="toggleAgree()">
+      <input type="checkbox" id="agreement" onclick="event.stopPropagation();toggleAgree()">
+      <span class="check-text">I understand my seat is only <strong>confirmed after payment</strong> is made. Unpaid bookings may be released after the hold period.</span>
+    </div>
+    <div class="field-err" id="err-agree" style="margin-top:6px">⚠ You must agree to continue.</div>
+
+    <div class="btn-row">
+      <button class="btn btn-back" onclick="goTo(2)" type="button">←</button>
+      <button class="btn btn-primary" id="submit-btn" onclick="submitForm()" type="button">
+        <span id="submit-label">Confirm Booking</span>
+        <div class="btn-spinner" id="submit-spinner"></div>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── CONFIG ───────────────────────────────
+const N8N_TRIPS_WEBHOOK  = 'https://n8n.krugasolves.com/webhook-test/forward-trips';
+const N8N_SUBMIT_WEBHOOK = 'https://n8n.krugasolves.com/webhook-test/forward-bookings';
+
+// ─── STATE ────────────────────────────────
+let trips = [];
+let selectedTrip = null;
+let bookingForOther = false;
+let agreedToTerms = false;
+let maxSeats = 4;
+
+// ─── INIT ─────────────────────────────────
+async function init() {
+  showState('loading');
+  try {
+    const res = await fetch(N8N_TRIPS_WEBHOOK, { method: 'GET' });
+    if (!res.ok) throw new Error('Bad response');
+    const data = await res.json();
+    trips = data.trips || [];
+    maxSeats = data.max_seats_per_booking || 4;
+
+    if (trips.length === 0) {
+      document.getElementById('error-body').textContent =
+        'No trips are available right now. Check back soon or message us on WhatsApp.';
+      showState('error');
+      return;
+    }
+
+    populateTrips();
+    showState('form');
+    goTo(1);
+  } catch(e) {
+    showState('error');
+  }
+}
+
+function showState(s) {
+  document.getElementById('state-loading').style.display = 'none';
+  document.getElementById('state-error').style.display   = 'none';
+  document.getElementById('state-success').style.display = 'none';
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  if (s === 'loading') document.getElementById('state-loading').style.display = 'flex';
+  if (s === 'error')   document.getElementById('state-error').style.display   = 'block';
+  if (s === 'success') document.getElementById('state-success').style.display = 'block';
+}
+
+// ─── TRIPS ────────────────────────────────
+function populateTrips() {
+  const sel = document.getElementById('trip_selection');
+  sel.innerHTML = '<option value="">— Choose a departure —</option>';
+  trips.forEach(t => {
+    const o = document.createElement('option');
+    o.value = t.trip_id;
+    o.textContent = t.display_name;
+    sel.appendChild(o);
+  });
+}
+
+function onTripSelect() {
+  const id = document.getElementById('trip_selection').value;
+  const reveal = document.getElementById('reveal-trip');
+  if (!id) { reveal.classList.remove('show'); selectedTrip = null; return; }
+
+  selectedTrip = trips.find(t => t.trip_id === id);
+  if (!selectedTrip) return;
+
+  document.getElementById('chip-route').textContent  = `${selectedTrip.origin} → ${selectedTrip.destination}`;
+  document.getElementById('chip-date').textContent   = selectedTrip.departure_date_label;
+  document.getElementById('chip-price').textContent  = `₦${Number(selectedTrip.price).toLocaleString()}`;
+  document.getElementById('chip-seats').textContent  = `${selectedTrip.seats_available} seat${selectedTrip.seats_available !== 1 ? 's' : ''} left`;
+
+  // Pickup points — split by pipe delimiter
+  const pickupSel = document.getElementById('pickup_point');
+  pickupSel.innerHTML = '<option value="">— Select pickup location —</option>';
+  const points = (selectedTrip.pickup_points || '')
+    .split('|').map(p => p.trim()).filter(Boolean);
+  points.forEach(p => {
+    const o = document.createElement('option');
+    o.value = p; o.textContent = p;
+    pickupSel.appendChild(o);
+  });
+
+  // Seats — cap at min(maxSeats, seats_available)
+  const cap = Math.min(maxSeats, selectedTrip.seats_available);
+  const si = document.getElementById('seats_requested');
+  si.value = 1; si.max = cap;
+  document.getElementById('seats-hint').textContent =
+    `Max ${cap} seat${cap !== 1 ? 's' : ''} per booking`;
+  updateStepper();
+
+  reveal.classList.add('show');
+}
+
+// ─── STEPPER ──────────────────────────────
+function adjustSeats(d) {
+  const i = document.getElementById('seats_requested');
+  const v = parseInt(i.value) + d;
+  if (v < parseInt(i.min) || v > parseInt(i.max)) return;
+  i.value = v;
+  updateStepper();
+}
+
+function updateStepper() {
+  const i = document.getElementById('seats_requested');
+  document.getElementById('btn-minus').disabled = parseInt(i.value) <= parseInt(i.min);
+  document.getElementById('btn-plus').disabled  = parseInt(i.value) >= parseInt(i.max);
+}
+
+// ─── TOGGLES ──────────────────────────────
+function toggleOther(val) {
+  bookingForOther = val;
+  document.getElementById('tog-yes').classList.toggle('on',  val);
+  document.getElementById('tog-no').classList.toggle('on',  !val);
+  document.getElementById('other-fields').classList.toggle('show', val);
+}
+
+function toggleAgree() {
+  agreedToTerms = !agreedToTerms;
+  document.getElementById('agreement').checked = agreedToTerms;
+  document.getElementById('agree-wrap').classList.toggle('on', agreedToTerms);
+}
+
+// ─── PROGRESS ─────────────────────────────
+const stepNames = ['', 'Select Trip', 'Your Details', 'Review & Confirm'];
+function updateProgress(s) {
+  for (let i = 1; i <= 3; i++) {
+    const b = document.getElementById(`bar-${i}`);
+    b.className = 'step-bar';
+    if (i < s) b.classList.add('done');
+    else if (i === s) b.classList.add('active');
+  }
+  document.getElementById('step-label').innerHTML =
+    `<span>Step ${s}</span> of 3 — ${stepNames[s]}`;
+}
+
+// ─── NAVIGATION ───────────────────────────
+function goTo(step) {
+  if (step > 1 && !validate(step - 1)) return;
+  if (step === 3) buildSummary();
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const pg = document.getElementById(`page-${step}`);
+  if (pg) { pg.classList.add('active'); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  updateProgress(step);
+}
+
+// ─── VALIDATION ───────────────────────────
+function setErr(id, show) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('show', show);
+}
+function setInv(id, inv) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('invalid', inv);
+}
+
+function validate(page) {
+  let ok = true;
+
+  if (page === 1) {
+    const trip   = document.getElementById('trip_selection').value;
+    const pickup = document.getElementById('pickup_point').value;
+    const seats  = parseInt(document.getElementById('seats_requested').value);
+
+    if (!trip)             { setErr('err-trip', true);   setInv('trip_selection', true);  ok = false; }
+    else                   { setErr('err-trip', false);  setInv('trip_selection', false); }
+
+    if (trip && !pickup)   { setErr('err-pickup', true); setInv('pickup_point', true);    ok = false; }
+    else                   { setErr('err-pickup', false); setInv('pickup_point', false);  }
+
+    if (trip && seats < 1) { setErr('err-seats', true);  ok = false; }
+    else                   { setErr('err-seats', false); }
+  }
+
+  if (page === 2) {
+    const name  = document.getElementById('full_name').value.trim();
+    const phone = document.getElementById('phone_number').value.trim().replace(/\s/g,'');
+    const email = document.getElementById('email').value.trim();
+    const phoneRx = /^(\+234|0)[789][01]\d{8}$/;
+    const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!name)               { setErr('err-name', true);  setInv('full_name', true);    ok = false; }
+    else                     { setErr('err-name', false); setInv('full_name', false);   }
+    if (!phoneRx.test(phone)){ setErr('err-phone', true); setInv('phone_number', true); ok = false; }
+    else                     { setErr('err-phone', false);setInv('phone_number', false);}
+    if (!emailRx.test(email)){ setErr('err-email', true); setInv('email', true);        ok = false; }
+    else                     { setErr('err-email', false);setInv('email', false);       }
+
+    if (bookingForOther) {
+      const pn = document.getElementById('passenger_name').value.trim();
+      const pp = document.getElementById('passenger_phone').value.trim().replace(/\s/g,'');
+      if (!pn)               { setErr('err-pax-name', true);  setInv('passenger_name', true);  ok = false; }
+      else                   { setErr('err-pax-name', false); setInv('passenger_name', false); }
+      if (!phoneRx.test(pp)) { setErr('err-pax-phone', true); setInv('passenger_phone', true); ok = false; }
+      else                   { setErr('err-pax-phone', false);setInv('passenger_phone', false);}
+    }
+  }
+
+  return ok;
+}
+
+// ─── SUMMARY ──────────────────────────────
+function buildSummary() {
+  if (!selectedTrip) return;
+  const seats = parseInt(document.getElementById('seats_requested').value);
+  const total = seats * Number(selectedTrip.price);
+  document.getElementById('sum-trip').textContent   = `${selectedTrip.origin} → ${selectedTrip.destination}`;
+  document.getElementById('sum-date').textContent   = selectedTrip.departure_date_label;
+  document.getElementById('sum-pickup').textContent = document.getElementById('pickup_point').value;
+  document.getElementById('sum-seats').textContent  = `${seats} seat${seats !== 1 ? 's' : ''}`;
+  document.getElementById('sum-name').textContent   = document.getElementById('full_name').value.trim();
+  document.getElementById('sum-phone').textContent  = document.getElementById('phone_number').value.trim();
+  document.getElementById('sum-email').textContent  = document.getElementById('email').value.trim();
+  document.getElementById('sum-total').textContent  = `₦${total.toLocaleString()}`;
+}
+
+// ─── SUBMIT ───────────────────────────────
+async function submitForm() {
+  if (!agreedToTerms) { setErr('err-agree', true); return; }
+  setErr('err-agree', false);
+
+  const btn = document.getElementById('submit-btn');
+  document.getElementById('submit-label').textContent = 'Submitting…';
+  document.getElementById('submit-spinner').style.display = 'block';
+  btn.disabled = true;
+
+  const seats = parseInt(document.getElementById('seats_requested').value);
+
+  const payload = {
+    trip_id:              selectedTrip.trip_id,
+    trip_display_name:    `${selectedTrip.origin} → ${selectedTrip.destination}`,
+    departure_date:       selectedTrip.departure_date_label,
+    pickup_point:         document.getElementById('pickup_point').value,
+    seats_requested:      seats,
+    price_per_seat:       selectedTrip.price,
+    total_amount:         seats * Number(selectedTrip.price),
+    full_name:            document.getElementById('full_name').value.trim(),
+    phone_number:         document.getElementById('phone_number').value.trim(),
+    email:                document.getElementById('email').value.trim(),
+    is_booking_for_other: bookingForOther,
+    passenger_name:       bookingForOther ? document.getElementById('passenger_name').value.trim() : '',
+    passenger_phone:      bookingForOther ? document.getElementById('passenger_phone').value.trim() : '',
+    notes:                document.getElementById('notes').value.trim(),
+    agreement_confirmed:  true,
+    timestamp:            new Date().toISOString()
+  };
+
+  try {
+    const res  = await fetch(N8N_SUBMIT_WEBHOOK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.message || 'Submission failed');
+    document.getElementById('ref-display').textContent = data.booking_id || 'FWD-XXXXXX';
+    showState('success');
+  } catch(err) {
+    btn.disabled = false;
+    document.getElementById('submit-label').textContent = 'Confirm Booking';
+    document.getElementById('submit-spinner').style.display = 'none';
+    alert(`Something went wrong: ${err.message}\n\nPlease try again or message us on WhatsApp.`);
+  }
+}
+
+// ─── BOOT ─────────────────────────────────
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

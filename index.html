@@ -602,7 +602,7 @@ function buildSummary() {
   const total = seats * Number(selectedTrip.price);
   document.getElementById('sum-trip').textContent   = `${selectedTrip.origin} → ${selectedTrip.destination}`;
   document.getElementById('sum-date').textContent   = selectedTrip.departure_date_label;
-  document.getElementById('sum-pickup').textContent = document.getElementById('Pickup Point(s)').value;
+  document.getElementById('sum-pickup').textContent = document.getElementById('pickup_point').value;
   document.getElementById('sum-seats').textContent  = `${seats} seat${seats !== 1 ? 's' : ''}`;
   document.getElementById('sum-name').textContent   = document.getElementById('full_name').value.trim();
   document.getElementById('sum-phone').textContent  = document.getElementById('phone_number').value.trim();

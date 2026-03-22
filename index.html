@@ -328,7 +328,7 @@
       <div class="summary-head">Booking Summary</div>
       <div class="summary-row"><span class="s-key">Trip</span><span class="s-val" id="sum-trip">—</span></div>
       <div class="summary-row"><span class="s-key">Date</span><span class="s-val" id="sum-date">—</span></div>
-      <div class="summary-row"><span class="s-key">Pickup</span><span class="s-val" id="sum-pickup">—</span></div>
+      <div class="summary-row"><span class="s-key"></span><span class="s-val" id="sum-">—</span></div>
       <div class="summary-row"><span class="s-key">Seats</span><span class="s-val" id="sum-seats">—</span></div>
       <div class="summary-row"><span class="s-key">Name</span><span class="s-val" id="sum-name">—</span></div>
       <div class="summary-row"><span class="s-key">Phone</span><span class="s-val" id="sum-phone">—</span></div>
@@ -436,7 +436,7 @@ function onTripSelect() {
   document.getElementById('chip-seats').textContent  = `${selectedTrip.seats_available} seat${selectedTrip.seats_available !== 1 ? 's' : ''} left`;
 
   // Pickup points — split by pipe delimiter
-  const pickupSel = document.getElementById('pickup_point');
+  const pickupSel = document.getElementById('Pickup Point(s)');
   pickupSel.innerHTML = '<option value="">— Select pickup location —</option>';
   const points = (selectedTrip.pickup_points || '')
     .split('|').map(p => p.trim()).filter(Boolean);

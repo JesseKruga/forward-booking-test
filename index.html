@@ -425,33 +425,64 @@ function populateTrips() {
 function onTripSelect() {
   const id = document.getElementById('trip_selection').value;
   const reveal = document.getElementById('reveal-trip');
-  if (!id) { reveal.classList.remove('show'); selectedTrip = null; return; }
+  const pickupSel = document.getElementById('pickup_point');
+  const chipRoute = document.getElementById('chip-route');
+  const chipDate = document.getElementById('chip-date');
+  const chipPrice = document.getElementById('chip-price');
+  const chipSeats = document.getElementById('chip-seats');
+  const seatsInput = document.getElementById('seats_requested');
+  const seatsHint = document.getElementById('seats-hint');
+
+  // Guard — if any element is missing, log and bail
+  if (!reveal || !pickupSel || !chipRoute || !seatsInput) {
+    console.error('onTripSelect: missing DOM elements', {
+      reveal, pickupSel, chipRoute, seatsInput
+    });
+    return;
+  }
+
+  if (!id) {
+    reveal.classList.remove('show');
+    selectedTrip = null;
+    return;
+  }
 
   selectedTrip = trips.find(t => t.trip_id === id);
-  if (!selectedTrip) return;
+  if (!selectedTrip) {
+    console.error('Trip not found for id:', id);
+    return;
+  }
 
-  document.getElementById('chip-route').textContent  = `${selectedTrip.origin} → ${selectedTrip.destination}`;
-  document.getElementById('chip-date').textContent   = selectedTrip.departure_date_label;
-  document.getElementById('chip-price').textContent  = `₦${Number(selectedTrip.price).toLocaleString()}`;
-  document.getElementById('chip-seats').textContent  = `${selectedTrip.seats_available} seat${selectedTrip.seats_available !== 1 ? 's' : ''} left`;
+  chipRoute.textContent  = `${selectedTrip.origin} → ${selectedTrip.destination}`;
+  chipDate.textContent   = selectedTrip.departure_date_label;
+  chipPrice.textContent  = `₦${Number(selectedTrip.price).toLocaleString()}`;
+  chipSeats.textContent  = `${selectedTrip.seats_available} seat${selectedTrip.seats_available !== 1 ? 's' : ''} left`;
 
   // Pickup points — split by pipe delimiter
-  const pickupSel = document.getElementById('Pickup Point(s)');
   pickupSel.innerHTML = '<option value="">— Select pickup location —</option>';
   const points = (selectedTrip.pickup_points || '')
     .split('|').map(p => p.trim()).filter(Boolean);
-  points.forEach(p => {
-    const o = document.createElement('option');
-    o.value = p; o.textContent = p;
-    pickupSel.appendChild(o);
-  });
 
-  // Seats — cap at min(maxSeats, seats_available)
+  if (points.length > 0) {
+    points.forEach(p => {
+      const o = document.createElement('option');
+      o.value = p;
+      o.textContent = p;
+      pickupSel.appendChild(o);
+    });
+  } else {
+    // No pickup points in sheet — add a placeholder
+    const o = document.createElement('option');
+    o.value = 'To be confirmed';
+    o.textContent = 'To be confirmed';
+    pickupSel.appendChild(o);
+  }
+
+  // Seats cap
   const cap = Math.min(maxSeats, selectedTrip.seats_available);
-  const si = document.getElementById('seats_requested');
-  si.value = 1; si.max = cap;
-  document.getElementById('seats-hint').textContent =
-    `Max ${cap} seat${cap !== 1 ? 's' : ''} per booking`;
+  seatsInput.value = 1;
+  seatsInput.max = cap;
+  seatsHint.textContent = `Max ${cap} seat${cap !== 1 ? 's' : ''} per booking`;
   updateStepper();
 
   reveal.classList.add('show');

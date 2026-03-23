@@ -117,8 +117,8 @@
   .check-wrap { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); cursor: pointer; transition: border-color 0.18s, background 0.18s; }
   .check-wrap:hover { border-color: var(--accent); }
   .check-wrap.on { border-color: var(--accent); background: var(--accent-dim); }
-  .check-wrap input[type=checkbox] { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; accent-color: var(--accent); cursor: pointer; }
-  .check-text { font-size: 14px; line-height: 1.5; color: var(--text-primary); cursor: pointer; }
+  .check-wrap input[type=checkbox] { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; accent-color: var(--accent); cursor: pointer; pointer-events: none; }
+  .check-text { font-size: 14px; line-height: 1.5; color: var(--text-primary); cursor: pointer; user-select: none; }
 
   /* SUMMARY */
   .summary { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); margin-bottom: 12px; }
@@ -178,11 +178,13 @@
 
 <div class="main">
 
+  <!-- LOADING -->
   <div id="state-loading">
     <div class="big-spinner"></div>
     <div style="font-size:14px;color:var(--text-secondary)">Fetching available trips…</div>
   </div>
 
+  <!-- ERROR -->
   <div id="state-error">
     <div style="font-size:38px;margin-bottom:14px">⚠️</div>
     <div class="state-title">Couldn't load trips</div>
@@ -190,10 +192,11 @@
     <button class="retry-btn" onclick="init()">Try Again</button>
   </div>
 
+  <!-- SUCCESS -->
   <div id="state-success">
     <div class="success-mark">✓</div>
     <div class="state-title">You're in the queue!</div>
-    <div class="state-body">Booking received. You'll get a payment link via email and WhatsApp once your seat is confirmed.</div>
+    <div class="state-body">Booking received. You'll get a payment link via email once your seat is confirmed.</div>
     <div class="booking-ref-box">
       <div class="booking-ref-label">Booking Reference</div>
       <div class="booking-ref-val" id="ref-display">FWD-000000</div>
@@ -347,7 +350,7 @@
     </div>
 
     <div class="check-wrap" id="agree-wrap" onclick="toggleAgree()">
-      <input type="checkbox" id="agreement" onclick="event.stopPropagation();toggleAgree()">
+      <input type="checkbox" id="agreement">
       <span class="check-text">I understand my seat is only <strong>confirmed after payment</strong> is made. Unpaid bookings may be released after the hold period.</span>
     </div>
     <div class="field-err" id="err-agree" style="margin-top:6px">⚠ You must agree to continue.</div>
@@ -361,7 +364,7 @@
     </div>
   </div>
 
-</div>
+</div><!-- /main -->
 
 <script>
 // ─── CONFIG ───────────────────────────────
@@ -369,20 +372,20 @@ const N8N_TRIPS_WEBHOOK  = 'https://n8n.krugasolves.com/webhook/forward-trips';
 const N8N_SUBMIT_WEBHOOK = 'https://n8n.krugasolves.com/webhook/forward-bookings';
 
 // ─── STATE ────────────────────────────────
-let trips = [];
-let selectedTrip = null;
+let trips          = [];
+let selectedTrip   = null;
 let bookingForOther = false;
-let agreedToTerms = false;
-let maxSeats = 4;
+let agreedToTerms  = false;
+let maxSeats       = 4;
 
 // ─── INIT ─────────────────────────────────
 async function init() {
   showState('loading');
   try {
-    const res = await fetch(N8N_TRIPS_WEBHOOK, { method: 'GET' });
+    const res  = await fetch(N8N_TRIPS_WEBHOOK, { method: 'GET' });
     if (!res.ok) throw new Error('Bad response');
     const data = await res.json();
-    trips = data.trips || [];
+    trips    = data.trips || [];
     maxSeats = data.max_seats_per_booking || 4;
 
     if (trips.length === 0) {
@@ -391,7 +394,6 @@ async function init() {
       showState('error');
       return;
     }
-
     populateTrips();
     showState('form');
     goTo(1);
@@ -416,28 +418,25 @@ function populateTrips() {
   sel.innerHTML = '<option value="">— Choose a departure —</option>';
   trips.forEach(t => {
     const o = document.createElement('option');
-    o.value = t.trip_id;
+    o.value       = t.trip_id;
     o.textContent = t.display_name;
     sel.appendChild(o);
   });
 }
 
 function onTripSelect() {
-  const id = document.getElementById('trip_selection').value;
+  const id     = document.getElementById('trip_selection').value;
   const reveal = document.getElementById('reveal-trip');
-  const pickupSel = document.getElementById('pickup_point');
-  const chipRoute = document.getElementById('chip-route');
-  const chipDate = document.getElementById('chip-date');
-  const chipPrice = document.getElementById('chip-price');
-  const chipSeats = document.getElementById('chip-seats');
+  const pickupSel  = document.getElementById('pickup_point');
+  const chipRoute  = document.getElementById('chip-route');
+  const chipDate   = document.getElementById('chip-date');
+  const chipPrice  = document.getElementById('chip-price');
+  const chipSeats  = document.getElementById('chip-seats');
   const seatsInput = document.getElementById('seats_requested');
-  const seatsHint = document.getElementById('seats-hint');
+  const seatsHint  = document.getElementById('seats-hint');
 
-  // Guard — if any element is missing, log and bail
   if (!reveal || !pickupSel || !chipRoute || !seatsInput) {
-    console.error('onTripSelect: missing DOM elements', {
-      reveal, pickupSel, chipRoute, seatsInput
-    });
+    console.error('onTripSelect: missing DOM elements');
     return;
   }
 
@@ -448,10 +447,7 @@ function onTripSelect() {
   }
 
   selectedTrip = trips.find(t => t.trip_id === id);
-  if (!selectedTrip) {
-    console.error('Trip not found for id:', id);
-    return;
-  }
+  if (!selectedTrip) return;
 
   chipRoute.textContent  = `${selectedTrip.origin} → ${selectedTrip.destination}`;
   chipDate.textContent   = selectedTrip.departure_date_label;
@@ -466,22 +462,19 @@ function onTripSelect() {
   if (points.length > 0) {
     points.forEach(p => {
       const o = document.createElement('option');
-      o.value = p;
-      o.textContent = p;
+      o.value = p; o.textContent = p;
       pickupSel.appendChild(o);
     });
   } else {
-    // No pickup points in sheet — add a placeholder
     const o = document.createElement('option');
-    o.value = 'To be confirmed';
-    o.textContent = 'To be confirmed';
+    o.value = 'To be confirmed'; o.textContent = 'To be confirmed';
     pickupSel.appendChild(o);
   }
 
   // Seats cap
   const cap = Math.min(maxSeats, selectedTrip.seats_available);
   seatsInput.value = 1;
-  seatsInput.max = cap;
+  seatsInput.max   = cap;
   seatsHint.textContent = `Max ${cap} seat${cap !== 1 ? 's' : ''} per booking`;
   updateStepper();
 
@@ -515,6 +508,7 @@ function toggleAgree() {
   agreedToTerms = !agreedToTerms;
   document.getElementById('agreement').checked = agreedToTerms;
   document.getElementById('agree-wrap').classList.toggle('on', agreedToTerms);
+  if (agreedToTerms) setErr('err-agree', false);
 }
 
 // ─── PROGRESS ─────────────────────────────
@@ -523,7 +517,7 @@ function updateProgress(s) {
   for (let i = 1; i <= 3; i++) {
     const b = document.getElementById(`bar-${i}`);
     b.className = 'step-bar';
-    if (i < s) b.classList.add('done');
+    if (i < s)       b.classList.add('done');
     else if (i === s) b.classList.add('active');
   }
   document.getElementById('step-label').innerHTML =
@@ -558,14 +552,12 @@ function validate(page) {
     const pickup = document.getElementById('pickup_point').value;
     const seats  = parseInt(document.getElementById('seats_requested').value);
 
-    if (!trip)             { setErr('err-trip', true);   setInv('trip_selection', true);  ok = false; }
-    else                   { setErr('err-trip', false);  setInv('trip_selection', false); }
-
-    if (trip && !pickup)   { setErr('err-pickup', true); setInv('pickup_point', true);    ok = false; }
-    else                   { setErr('err-pickup', false); setInv('pickup_point', false);  }
-
-    if (trip && seats < 1) { setErr('err-seats', true);  ok = false; }
-    else                   { setErr('err-seats', false); }
+    if (!trip)           { setErr('err-trip', true);   setInv('trip_selection', true);  ok = false; }
+    else                 { setErr('err-trip', false);  setInv('trip_selection', false); }
+    if (trip && !pickup) { setErr('err-pickup', true); setInv('pickup_point', true);    ok = false; }
+    else                 { setErr('err-pickup', false);setInv('pickup_point', false);   }
+    if (trip && seats < 1){ setErr('err-seats', true); ok = false; }
+    else                  { setErr('err-seats', false); }
   }
 
   if (page === 2) {
@@ -575,20 +567,20 @@ function validate(page) {
     const phoneRx = /^(\+234|0)[789][01]\d{8}$/;
     const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!name)               { setErr('err-name', true);  setInv('full_name', true);    ok = false; }
-    else                     { setErr('err-name', false); setInv('full_name', false);   }
-    if (!phoneRx.test(phone)){ setErr('err-phone', true); setInv('phone_number', true); ok = false; }
-    else                     { setErr('err-phone', false);setInv('phone_number', false);}
-    if (!emailRx.test(email)){ setErr('err-email', true); setInv('email', true);        ok = false; }
-    else                     { setErr('err-email', false);setInv('email', false);       }
+    if (!name)                { setErr('err-name', true);  setInv('full_name', true);     ok = false; }
+    else                      { setErr('err-name', false); setInv('full_name', false);    }
+    if (!phoneRx.test(phone)) { setErr('err-phone', true); setInv('phone_number', true);  ok = false; }
+    else                      { setErr('err-phone', false);setInv('phone_number', false); }
+    if (!emailRx.test(email)) { setErr('err-email', true); setInv('email', true);         ok = false; }
+    else                      { setErr('err-email', false);setInv('email', false);        }
 
     if (bookingForOther) {
       const pn = document.getElementById('passenger_name').value.trim();
       const pp = document.getElementById('passenger_phone').value.trim().replace(/\s/g,'');
-      if (!pn)               { setErr('err-pax-name', true);  setInv('passenger_name', true);  ok = false; }
-      else                   { setErr('err-pax-name', false); setInv('passenger_name', false); }
-      if (!phoneRx.test(pp)) { setErr('err-pax-phone', true); setInv('passenger_phone', true); ok = false; }
-      else                   { setErr('err-pax-phone', false);setInv('passenger_phone', false);}
+      if (!pn)                { setErr('err-pax-name', true);  setInv('passenger_name', true);  ok = false; }
+      else                    { setErr('err-pax-name', false); setInv('passenger_name', false); }
+      if (!phoneRx.test(pp))  { setErr('err-pax-phone', true); setInv('passenger_phone', true); ok = false; }
+      else                    { setErr('err-pax-phone', false);setInv('passenger_phone', false);}
     }
   }
 
@@ -616,7 +608,7 @@ async function submitForm() {
   setErr('err-agree', false);
 
   const btn = document.getElementById('submit-btn');
-  document.getElementById('submit-label').textContent = 'Submitting…';
+  document.getElementById('submit-label').textContent  = 'Submitting…';
   document.getElementById('submit-spinner').style.display = 'block';
   btn.disabled = true;
 
@@ -642,18 +634,19 @@ async function submitForm() {
   };
 
   try {
-    const res = await fetch(N8N_SUBMIT_WEBHOOK, {
-      method: 'POST',
+    const res  = await fetch(N8N_SUBMIT_WEBHOOK, {
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body:    JSON.stringify(payload)
     });
 
     const text = await res.text();
     const data = text ? JSON.parse(text) : {};
 
+    // Trip full — handle gracefully without WhatsApp alert
     if (data.error && data.message === 'TRIP_FULL') {
       btn.disabled = false;
-      document.getElementById('submit-label').textContent = 'Confirm Booking';
+      document.getElementById('submit-label').textContent  = 'Confirm Booking';
       document.getElementById('submit-spinner').style.display = 'none';
       showTripFullError();
       return;
@@ -668,20 +661,15 @@ async function submitForm() {
 
   } catch(err) {
     btn.disabled = false;
-    document.getElementById('submit-label').textContent = 'Confirm Booking';
+    document.getElementById('submit-label').textContent  = 'Confirm Booking';
     document.getElementById('submit-spinner').style.display = 'none';
     alert(`Something went wrong: ${err.message}\n\nPlease try again or message us on WhatsApp.`);
   }
 }
+
+// ─── TRIP FULL ────────────────────────────
 function showTripFullError() {
-  // Hide all pages
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  
-  // Show error state with specific message
-  const errorBody = document.getElementById('error-body');
-  errorBody.textContent = 'Sorry, this trip just filled up while you were booking. Please go back and select another available trip.';
-  
-  // Add a "Go Back" button that reloads trips
   document.getElementById('state-error').innerHTML = `
     <div style="font-size:38px;margin-bottom:14px">😔</div>
     <div class="state-title">Trip Just Filled Up</div>
@@ -692,12 +680,12 @@ function showTripFullError() {
 }
 
 function resetToTripSelection() {
-  // Reset form state
-  selectedTrip = null;
+  selectedTrip  = null;
+  agreedToTerms = false;
   document.getElementById('trip_selection').value = '';
   document.getElementById('reveal-trip').classList.remove('show');
-  
-  // Reload trips fresh from n8n in case availability changed
+  document.getElementById('agreement').checked = false;
+  document.getElementById('agree-wrap').classList.remove('on');
   init();
 }
 

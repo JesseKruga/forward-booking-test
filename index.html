@@ -642,28 +642,31 @@ async function submitForm() {
   };
 
   try {
+    const res = await fetch(N8N_SUBMIT_WEBHOOK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
     const text = await res.text();
     const data = text ? JSON.parse(text) : {};
-    
-    // Handle specific error codes gracefully
+
     if (data.error && data.message === 'TRIP_FULL') {
-      // Reset submit button
       btn.disabled = false;
       document.getElementById('submit-label').textContent = 'Confirm Booking';
       document.getElementById('submit-spinner').style.display = 'none';
-      
-      // Show inline error instead of alert or success
       showTripFullError();
       return;
     }
-    
+
     if (!res.ok || data.error) {
       throw new Error(data.message || 'Submission failed');
     }
-    
+
     document.getElementById('ref-display').textContent = data.booking_id || 'FWD-XXXXXX';
     showState('success');
-    } catch(err) {
+
+  } catch(err) {
     btn.disabled = false;
     document.getElementById('submit-label').textContent = 'Confirm Booking';
     document.getElementById('submit-spinner').style.display = 'none';

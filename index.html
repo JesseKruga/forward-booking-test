@@ -381,9 +381,9 @@ async function init() {
   try {
     const res = await fetch(N8N_TRIPS_WEBHOOK, { method: 'GET' });
     if (!res.ok) throw new Error('Bad response');
-    const text = await res.text();
-    const data = text ? JSON.parse(text) : {};
-    if (!res.ok || data.error) throw new Error(data.message || 'Submission failed');
+    const data = await res.json();
+    trips = data.trips || [];
+    maxSeats = data.max_seats_per_booking || 4;
 
     if (trips.length === 0) {
       document.getElementById('error-body').textContent =

@@ -663,6 +663,13 @@ async function submitForm() {
     
     document.getElementById('ref-display').textContent = data.booking_id || 'FWD-XXXXXX';
     showState('success');
+    } catch(err) {
+    btn.disabled = false;
+    document.getElementById('submit-label').textContent = 'Confirm Booking';
+    document.getElementById('submit-spinner').style.display = 'none';
+    alert(`Something went wrong: ${err.message}\n\nPlease try again or message us on WhatsApp.`);
+  }
+}
 function showTripFullError() {
   // Hide all pages
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));

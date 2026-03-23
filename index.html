@@ -642,21 +642,53 @@ async function submitForm() {
   };
 
   try {
-    const res  = await fetch(N8N_SUBMIT_WEBHOOK, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-    if (!res.ok || data.error) throw new Error(data.message || 'Submission failed');
+    const text = await res.text();
+    const data = text ? JSON.parse(text) : {};
+    
+    // Handle specific error codes gracefully
+    if (data.error && data.message === 'TRIP_FULL') {
+      // Reset submit button
+      btn.disabled = false;
+      document.getElementById('submit-label').textContent = 'Confirm Booking';
+      document.getElementById('submit-spinner').style.display = 'none';
+      
+      // Show inline error instead of alert or success
+      showTripFullError();
+      return;
+    }
+    
+    if (!res.ok || data.error) {
+      throw new Error(data.message || 'Submission failed');
+    }
+    
     document.getElementById('ref-display').textContent = data.booking_id || 'FWD-XXXXXX';
     showState('success');
-  } catch(err) {
-    btn.disabled = false;
-    document.getElementById('submit-label').textContent = 'Confirm Booking';
-    document.getElementById('submit-spinner').style.display = 'none';
-    alert(`Something went wrong: ${err.message}\n\nPlease try again or message us on WhatsApp.`);
-  }
+function showTripFullError() {
+  // Hide all pages
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  
+  // Show error state with specific message
+  const errorBody = document.getElementById('error-body');
+  errorBody.textContent = 'Sorry, this trip just filled up while you were booking. Please go back and select another available trip.';
+  
+  // Add a "Go Back" button that reloads trips
+  document.getElementById('state-error').innerHTML = `
+    <div style="font-size:38px;margin-bottom:14px">😔</div>
+    <div class="state-title">Trip Just Filled Up</div>
+    <div class="state-body">Someone else just booked the last seat. Select another trip or check back later.</div>
+    <button class="retry-btn" onclick="resetToTripSelection()">See Other Trips</button>
+  `;
+  document.getElementById('state-error').style.display = 'block';
+}
+
+function resetToTripSelection() {
+  // Reset form state
+  selectedTrip = null;
+  document.getElementById('trip_selection').value = '';
+  document.getElementById('reveal-trip').classList.remove('show');
+  
+  // Reload trips fresh from n8n in case availability changed
+  init();
 }
 
 // ─── BOOT ─────────────────────────────────
